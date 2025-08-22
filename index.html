@@ -4,6 +4,7 @@
     <title>明日方舟随机挑战生成器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -29,6 +30,29 @@
             .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
             .bilibili-btn { transition: all 0.3s ease; }
             .bilibili-btn:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(255, 117, 117, 0.5); }
+            .pull-card { transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; transform: translateY(20px) scale(0.95); }
+            .pull-card.visible { opacity: 1; transform: translateY(0) scale(1); }
+            .pull-shine { position: relative; overflow: hidden; }
+            .pull-shine::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(
+                to right, 
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            ); transform: rotate(30deg); animation: shine 3s infinite; }
+            @keyframes shine { 0% { transform: translateX(-100%) rotate(30deg); } 100% { transform: translateX(100%) rotate(30deg); } }
+            .special-glow { box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); }
+            .stage-animation { animation: stageSpin 1.5s ease-out forwards; transform-style: preserve-3d; perspective: 1000px; }
+            @keyframes stageSpin {
+                0% { transform: rotateY(0deg) scale(0.8); opacity: 0.5; }
+                50% { transform: rotateY(180deg) scale(1.1); opacity: 0.8; }
+                100% { transform: rotateY(360deg) scale(1); opacity: 1; }
+            }
+            .pulse-effect { animation: pulse 0.5s ease-in-out 3; }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -42,7 +66,6 @@
             <h1 class="text-4xl md:text-6xl font-bold mb-4 text-arknights-lightgold text-shadow relative z-10">明日方舟</h1>
             <p class="text-xl md:text-2xl text-arknights-paper/80 italic mb-4">随机挑战生成器</p>
             
-            <!-- 新增的点赞按钮 -->
             <a href="https://space.bilibili.com/626916563?spm_id_from=333.788.0.0" target="_blank" rel="noopener noreferrer" 
                class="bilibili-btn inline-flex items-center justify-center bg-[#FB7299] text-white font-medium py-2 px-6 rounded-full 
                       border-2 border-[#FF5C8A] shadow-lg mb-6">
@@ -59,6 +82,7 @@
                         <i class="fa fa-shield text-arknights-gold text-2xl mr-4"></i>
                         <label for="difficulty" class="text-xl font-medium mr-3 text-arknights-paper/90">挑战难度:</label>
                         <select id="difficulty" class="bg-arknights-lightgray border border-arknights-brown rounded-md px-4 py-2 text-lg text-arknights-paper focus:border-arknights-gold focus:ring-1 focus:ring-arknights-gold outline-none">
+                            <option value="verysimple">非常简单</option>
                             <option value="easy" selected>简单</option>
                             <option value="normal">普通</option>
                             <option value="hard">困难</option>
@@ -88,22 +112,26 @@
                 </div>
                 
                 <div class="space-y-6">
+                    <!-- 角色限制框 -->
                     <div class="bg-arknights-gray rounded-lg border border-arknights-brown p-5 card-hover">
                         <h3 class="text-xl font-semibold mb-4 text-arknights-lightgold flex items-center">
                             <i class="fa fa-user-circle mr-3 text-arknights-accent text-2xl"></i>角色限制
                         </h3>
-                        <div id="character-restrictions" class="text-lg leading-relaxed space-y-3 text-arknights-paper/90">
-                            <p>禁止使用<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">3星及以下</span>的<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">医疗</span>的<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">女性</span>干员</p>
-                            <p>只能使用<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">蓝色居多</span>的干员</p>
+                        <div id="character-restrictions" class="text-lg leading-relaxed space-y-4 text-arknights-paper/90">
+                            <p>禁止使用<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">穿鞋</span>的干员</p>
                         </div>
                     </div>
                     
+                    <!-- 新增的挑战关卡框 -->
                     <div class="bg-arknights-gray rounded-lg border border-arknights-brown p-5 card-hover">
                         <h3 class="text-xl font-semibold mb-4 text-arknights-lightgold flex items-center">
-                            <i class="fa fa-exclamation-triangle mr-3 text-arknights-red text-2xl"></i>战斗条件
+                            <i class="fa fa-map-marker mr-3 text-arknights-accent text-2xl"></i>挑战关卡
                         </h3>
-                        <div id="special-conditions" class="text-lg leading-relaxed space-y-3 text-arknights-paper/90">
-                            <span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 inline-block min-w-[200px]">请生成挑战查看条件</span>
+                        <div class="text-lg leading-relaxed space-y-4 text-arknights-paper/90">
+                            <p id="stage-display" class="mb-4">本次随机挑战关卡为<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">危机合约</span></p>
+                            <button id="draw-stage" class="bg-arknights-brown hover:bg-arknights-lightbrown text-arknights-paper py-2 px-6 rounded border border-arknights-brown hover:border-arknights-gold transition-all duration-300 flex items-center">
+                                <i class="fa fa-dice mr-2"></i> 抽取关卡
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -125,14 +153,15 @@
         </footer>
     </div>
 
+    <!-- 十连抽模态框 -->
     <div id="ten-pulls-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
-        <div class="bg-arknights-dark rounded-lg border-2 border-arknights-brown max-w-5xl w-full max-h-[90vh] overflow-y-auto m-4 transform transition-all duration-300 opacity-0 scale-95" id="modal-content">
+        <div class="bg-arknights-dark rounded-lg border-2 border-arknights-brown max-w-6xl w-full max-h-[90vh] overflow-y-auto m-4 transform transition-all duration-300 opacity-0 scale-95" id="modal-content">
             <div class="p-6 border-b border-arknights-brown bg-arknights-gray">
                 <h2 class="text-3xl font-bold text-center text-arknights-lightgold">十连抽结果</h2>
                 <p class="text-center text-arknights-paper/70 mt-2">请选择一个挑战作为最终结果</p>
             </div>
             
-            <div id="pulls-container" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div id="pulls-container" class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                 <div class="col-span-full flex justify-center items-center h-64">
                     <i class="fa fa-spinner fa-spin text-5xl text-arknights-gold"></i>
                 </div>
@@ -149,9 +178,10 @@
     </div>
 
     <script>
-        let challengeHistory = [], currentPulls = [];
+        let challengeHistory = [], currentPulls = [], currentChallenge = null, currentStage = "危机合约";
         
         const keywordColors = {
+            "穿鞋": "text-cyan-400",
             "3星及以下": "text-green-400", "4-5星": "text-green-400", "非6星": "text-green-400", "5星及以下": "text-green-400", "0级": "text-green-400", "不满信赖": "text-green-400",
             "4星及以上": "text-blue-400", "6星": "text-blue-400", "精一": "text-blue-400", "医疗": "text-blue-400", "先锋": "text-blue-400", "近卫": "text-blue-400", "狙击": "text-blue-400", "术士": "text-blue-400", "重装": "text-blue-400", "辅助": "text-blue-400", "特种": "text-blue-400", "罗德岛": "text-blue-400", "龙门": "text-blue-400", "拉特兰": "text-blue-400", "乌萨斯": "text-blue-400", "萨卡兹": "text-blue-400", "猫科": "text-blue-400", "犬科": "text-blue-400", "鸟类": "text-blue-400",
             "专三": "text-purple-400", "没专三过": "text-purple-400", "满信赖": "text-purple-400", "限定": "text-purple-400", "限定6星": "text-purple-400", "周年庆": "text-purple-400", "夏活": "text-purple-400", "赠送": "text-purple-400", "联动": "text-purple-400", "女性": "text-purple-400", "男性": "text-purple-400", "近战": "text-purple-400", "远程": "text-purple-400", "高台": "text-purple-400", "地面": "text-purple-400",
@@ -160,6 +190,9 @@
             "非限定": "text-orange-400", "非限定6星": "text-orange-400", "非周年庆": "text-orange-400", "非夏活": "text-orange-400", "非赠送": "text-orange-400", "非联动": "text-orange-400", "精二": "text-orange-400", "满级": "text-orange-400", "群攻型": "text-orange-400", "单体型": "text-orange-400", "可同时群攻和单体": "text-orange-400", "技能群攻型": "text-orange-400", "技能对单型": "text-orange-400", "攻击距离超过一格": "text-orange-400", "攻击距离没超过一格": "text-orange-400", "带攻击回复技能": "text-orange-400", "带自动回复技能": "text-orange-400", "带受击回复技能": "text-orange-400", "带攻击型技能": "text-orange-400", "带buff型技能": "text-orange-400", "带全地图范围型技能": "text-orange-400",
             "蓝色居多": "text-red-400", "粉色居多": "text-red-400", "红色居多": "text-red-400", "黄色居多": "text-red-400", "白色居多": "text-red-400", "绿色居多": "text-red-400", "暖色系": "text-red-400", "冷色系": "text-red-400", "身高160cm以下": "text-red-400", "长角": "text-red-400", "没长角": "text-red-400", "拥有限定皮肤": "text-red-400", "身高160cm以上": "text-red-400", "戴手套": "text-red-400", "不戴手套": "text-red-400", "带餐具": "text-red-400", "有尾巴": "text-red-400", "没尾巴": "text-red-400", "带吃的": "text-red-400", "不带吃的": "text-red-400", "只有一个皮肤": "text-red-400", "没有皮肤": "text-red-400", "至少两个皮肤": "text-red-400", "光滑的": "text-red-400", "使用冷兵器": "text-red-400", "使用热兵器": "text-red-400", "不使用兵器": "text-red-400", "有兵器但不用": "text-red-400", "使用多个兵器": "text-red-400", "穿铠甲": "text-red-400", "穿裙子": "text-red-400", "穿帽子": "text-red-400", "戴眼镜": "text-red-400", "戴口罩": "text-red-400", "嘴上叼东西": "text-red-400", "有动态皮肤": "text-red-400", "蓝色眼睛": "text-red-400", "红色眼睛": "text-red-400", "闭眼睛": "text-red-400", "没头发": "text-red-400", "非人型": "text-red-400", "岛上有亲戚": "text-red-400", "语音声音大": "text-red-400", "语音声音小": "text-red-400", "2020年以前登岛": "text-red-400", "2020年以后登岛": "text-red-400", "白头发": "text-red-400", "粉头发": "text-red-400", "黄头发": "text-red-400", "绿头发": "text-red-400", "不喜欢说话": "text-red-400", "话痨": "text-red-400", "有光污染": "text-red-400"
         };
+        
+        // 关卡列表 - 目前只有危机合约
+        const stages = ["危机合约"];
         
         const starSourceLevelRestrictions = [
             "3星及以下", "4-5星", "4星及以上", "5星及以下", "6星", "非6星",
@@ -181,17 +214,28 @@
             "使用冷兵器", "使用热兵器", "不使用兵器", "有兵器但不用", "使用多个兵器", "穿铠甲", "穿裙子", "穿帽子", "戴眼镜", "戴口罩",
             "嘴上叼东西", "有动态皮肤", "蓝色眼睛", "红色眼睛", "闭眼睛", "没头发", "非人型", "岛上有亲戚", "语音声音大", "语音声音小", "2020年以前登岛", "2020年以后登岛", "白头发", "粉头发", "黄头发", "绿头发", "不喜欢说话", "话痨", "有光污染"
         ];
-        
-        const battleConditions = {
-            easy: ["部署费用增加10%", "初始部署费用+2", "允许一次撤退无惩罚", "所有干员攻击速度+5%", "医疗干员治疗量+10%", "首次部署费用减半", "可以额外携带1名干员", "敌方单位生命值-5%"],
-            normal: ["部署费用增加15%", "不能使用治疗技能", "关卡时间减少15%", "禁止使用召唤物", "所有干员攻击力-5%", "每次部署费用+1", "只能携带9名干员", "敌方单位攻击力+5%", "地面干员部署费用+1"],
-            hard: ["部署费用增加30%", "不能使用治疗技能", "关卡时间减少25%", "禁止使用召唤物", "所有干员攻击力-15%", "每次部署费用+2", "只能携带7名干员", "敌方单位攻击力+15%", "地面干员部署费用+3", "高台干员生命值-20%", "技能冷却时间增加20%", "禁止使用支援单位"],
-            veryhard: ["部署费用增加60%", "禁止使用技能", "关卡时间减少45%", "不能损失任何干员", "只能部署在蓝色格子", "所有干员生命值-30%", "只能携带4名干员", "敌方单位伤害+40%", "每次撤退扣除8点费用", "禁止重复部署同职业干员", "所有干员再部署时间+70%", "只能使用首次部署的3名干员", "每部署1名干员扣除2点生命值"],
-            special: ["随机切换所有干员职业", "所有干员变成1级", "只能使用自动部署", "每10秒随机交换两个干员位置", "部署费用随时间减少", "所有技能无冷却但消耗增加200%", "只能看到半个地图", "干员部署后随机移动到其他格子", "所有干员攻击力+100%但生命值-80%", "敌方单位死亡后随机复活一个友方干员"]
-        };
 
+        // 生成角色挑战限制
         function generateChallenge(saveToHistory = true, difficulty = null) {
             const finalDifficulty = difficulty || document.getElementById('difficulty').value;
+            
+            // 非常简单难度特殊处理
+            if (finalDifficulty === 'verysimple') {
+                const charRestrictions = `<p>禁止使用<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-cyan-400">穿鞋</span>的干员</p>`;
+                
+                const challenge = {
+                    charRestrictions, difficulty: finalDifficulty,
+                    stage: currentStage,
+                    time: new Date().toLocaleString(),
+                    rawData: { special: "穿鞋" }
+                };
+                
+                document.getElementById('character-restrictions').innerHTML = challenge.charRestrictions;
+                currentChallenge = challenge;
+                
+                if (saveToHistory) saveToHistoryEntry(challenge);
+                return challenge;
+            }
             
             const starSourceLevel = starSourceLevelRestrictions[Math.floor(Math.random() * starSourceLevelRestrictions.length)];
             const classOrTrait = classOrTraitRestrictions[Math.floor(Math.random() * classOrTraitRestrictions.length)];
@@ -226,29 +270,68 @@
                     break;
             }
             
-            const conditionCount = finalDifficulty === 'easy' ? 1 : finalDifficulty === 'normal' ? 2 : finalDifficulty === 'hard' ? 3 : finalDifficulty === 'veryhard' ? 4 : 2;
-            let battleConditionsHtml = '';
-            
-            for (let i = 0; i < conditionCount; i++) {
-                let condition;
-                do { condition = battleConditions[finalDifficulty][Math.floor(Math.random() * battleConditions[finalDifficulty].length)]; } while (battleConditionsHtml.includes(condition));
-                battleConditionsHtml += (i > 0 ? '<br>' : '') + `<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 inline-block min-w-[200px]">${condition}</span>`;
-            }
-            
             const challenge = {
-                charRestrictions, specialConditions: battleConditionsHtml, difficulty: finalDifficulty,
+                charRestrictions, difficulty: finalDifficulty,
+                stage: currentStage,
                 time: new Date().toLocaleString(),
-                rawData: { starSourceLevel, classOrTrait, special1, special2, special3, color1, color2, color3, color4, color5, conditions: battleConditionsHtml }
+                rawData: { starSourceLevel, classOrTrait, special1, special2, special3, color1, color2, color3, color4, color5 }
             };
             
             document.getElementById('character-restrictions').innerHTML = challenge.charRestrictions;
-            document.getElementById('special-conditions').innerHTML = challenge.specialConditions;
+            currentChallenge = challenge;
             
             if (saveToHistory) saveToHistoryEntry(challenge);
             return challenge;
         }
         
-        function getRandomDifficultyForPull() {
+        // 抽取关卡
+        function drawStage() {
+            const drawButton = document.getElementById('draw-stage');
+            const stageDisplay = document.getElementById('stage-display');
+            
+            // 禁用按钮防止重复点击
+            drawButton.disabled = true;
+            drawButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 抽取中...';
+            
+            // 创建临时元素用于动画效果
+            const tempStageElement = document.createElement('span');
+            tempStageElement.className = 'border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold stage-animation';
+            tempStageElement.textContent = "???";
+            
+            // 替换显示内容
+            const originalContent = stageDisplay.innerHTML;
+            stageDisplay.innerHTML = `本次随机挑战关卡为${tempStageElement.outerHTML}`;
+            
+            // 执行动画
+            setTimeout(() => {
+                // 虽然有随机逻辑，但始终只会选择危机合约
+                const randomIndex = 0; // 固定选择第一个关卡（危机合约）
+                currentStage = stages[randomIndex];
+                
+                // 更新显示并添加脉冲效果
+                const finalStageElement = document.createElement('span');
+                finalStageElement.className = 'border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold pulse-effect';
+                finalStageElement.textContent = currentStage;
+                
+                stageDisplay.innerHTML = `本次随机挑战关卡为${finalStageElement.outerHTML}`;
+                
+                // 恢复按钮状态
+                drawButton.disabled = false;
+                drawButton.innerHTML = '<i class="fa fa-dice mr-2"></i> 抽取关卡';
+                
+                // 如果当前有挑战，更新其关卡信息
+                if (currentChallenge) {
+                    currentChallenge.stage = currentStage;
+                }
+            }, 1500); // 动画持续时间
+        }
+        
+        function getRandomDifficultyForPull(index) {
+            // 第一抽必定是非常简单难度
+            if (index === 0) {
+                return 'verysimple';
+            }
+            
             const rand = Math.random();
             return rand < 0.3 ? 'easy' : rand < 0.55 ? 'normal' : rand < 0.75 ? 'hard' : rand < 0.9 ? 'veryhard' : 'special';
         }
@@ -264,8 +347,10 @@
             
             const tenPullsBtn = document.getElementById('ten-pulls');
             const generateBtn = document.getElementById('generate');
+            const drawStageBtn = document.getElementById('draw-stage');
             tenPullsBtn.disabled = true;
             generateBtn.disabled = true;
+            drawStageBtn.disabled = true;
             tenPullsBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 抽取中...';
             
             currentPulls = [];
@@ -273,7 +358,8 @@
             
             let count = 0;
             const interval = setInterval(() => {
-                const challenge = generateChallenge(false, getRandomDifficultyForPull());
+                // 传入当前索引，确保第一抽是非常简单难度
+                const challenge = generateChallenge(false, getRandomDifficultyForPull(count));
                 currentPulls.push(challenge);
                 addPullCard(challenge, count + 1);
                 
@@ -281,16 +367,18 @@
                     clearInterval(interval);
                     tenPullsBtn.disabled = false;
                     generateBtn.disabled = false;
+                    drawStageBtn.disabled = false;
                     tenPullsBtn.innerHTML = '<i class="fa fa-refresh mr-2"></i> 十连抽';
                 }
-            }, 200);
+            }, 300);
         }
         
         function addPullCard(challenge, index) {
             const container = document.getElementById('pulls-container');
-            let cardClass, difficultyText, difficultyBadgeClass;
+            let cardClass, difficultyText, difficultyBadgeClass, isSpecial = challenge.difficulty === 'special';
             
             switch(challenge.difficulty) {
+                case 'verysimple': cardClass = 'bg-cyan-900/20 border-cyan-800/30'; difficultyText = '非常简单'; difficultyBadgeClass = 'bg-cyan-600/80'; break;
                 case 'easy': cardClass = 'bg-green-900/20 border-green-800/30'; difficultyText = '简单'; difficultyBadgeClass = 'bg-green-600/80'; break;
                 case 'normal': cardClass = 'bg-blue-900/20 border-blue-800/30'; difficultyText = '普通'; difficultyBadgeClass = 'bg-blue-600/80'; break;
                 case 'hard': cardClass = 'bg-purple-900/20 border-purple-800/30'; difficultyText = '困难'; difficultyBadgeClass = 'bg-purple-600/80'; break;
@@ -299,24 +387,32 @@
             }
             
             const card = document.createElement('div');
-            card.className = `bg-arknights-gray ${cardClass} rounded-lg border p-4 card-hover cursor-pointer`;
+            card.className = `bg-arknights-gray ${cardClass} rounded-lg border p-4 card-hover cursor-pointer pull-card ${isSpecial ? 'pull-shine special-glow' : ''}`;
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <span class="text-sm font-bold ${difficultyBadgeClass} text-white px-2 py-1 rounded">${difficultyText}</span>
                     <span class="text-xs text-arknights-paper/60">No.${index}</span>
                 </div>
-                <div class="text-sm space-y-2 mb-3">${challenge.charRestrictions}</div>
-                <div class="text-xs text-arknights-paper/80">${challenge.specialConditions}</div>
+                <div class="text-xs text-arknights-paper/70 mb-2">关卡: <span class="text-arknights-gold">${challenge.stage}</span></div>
+                <div class="text-sm space-y-3 leading-relaxed mb-3">${challenge.charRestrictions}</div>
             `;
             
             card.onclick = () => {
                 document.getElementById('character-restrictions').innerHTML = challenge.charRestrictions;
-                document.getElementById('special-conditions').innerHTML = challenge.specialConditions;
+                currentChallenge = challenge;
+                currentStage = challenge.stage;
+                // 更新关卡显示
+                document.getElementById('stage-display').innerHTML = `本次随机挑战关卡为<span class="border-2 border-arknights-gold/50 px-2 py-0.5 mx-1 rounded bg-arknights-dark/50 text-arknights-gold">${currentStage}</span>`;
                 saveToHistoryEntry(challenge);
                 closeModal();
             };
             
             container.appendChild(card);
+            
+            // 添加延迟显示动画
+            setTimeout(() => {
+                card.classList.add('visible');
+            }, 50 * index);
         }
         
         function saveToHistoryEntry(challenge) {
@@ -340,19 +436,21 @@
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-arknights-lightgold text-sm">${challenge.time}</span>
                         <span class="text-xs px-2 py-0.5 rounded ${
+                            challenge.difficulty === 'verysimple' ? 'bg-cyan-600/80' :
                             challenge.difficulty === 'easy' ? 'bg-green-600/80' :
                             challenge.difficulty === 'normal' ? 'bg-blue-600/80' :
                             challenge.difficulty === 'hard' ? 'bg-purple-600/80' :
                             challenge.difficulty === 'veryhard' ? 'bg-orange-600/80' : 'bg-red-600/80'
                         } text-white">${
+                            challenge.difficulty === 'verysimple' ? '非常简单' :
                             challenge.difficulty === 'easy' ? '简单' :
                             challenge.difficulty === 'normal' ? '普通' :
                             challenge.difficulty === 'hard' ? '困难' :
                             challenge.difficulty === 'veryhard' ? '高难' : '特殊'
                         }</span>
                     </div>
-                    <div class="text-sm space-y-1 text-arknights-paper/80">${challenge.charRestrictions}</div>
-                    <div class="text-xs text-arknights-paper/60 mt-2">${challenge.specialConditions}</div>
+                    <div class="text-xs text-arknights-paper/70 mb-2">关卡: <span class="text-arknights-gold">${challenge.stage}</span></div>
+                    <div class="text-sm space-y-2 text-arknights-paper/80">${challenge.charRestrictions}</div>
                 `;
                 historyEl.appendChild(entry);
             });
@@ -380,6 +478,10 @@
         document.getElementById('ten-pulls').addEventListener('click', tenPulls);
         document.getElementById('clear-history').addEventListener('click', clearHistory);
         document.getElementById('close-modal').addEventListener('click', closeModal);
+        document.getElementById('draw-stage').addEventListener('click', drawStage);
+        
+        // 初始化生成一个挑战
+        generateChallenge(false);
     </script>
 </body>
 </html>
